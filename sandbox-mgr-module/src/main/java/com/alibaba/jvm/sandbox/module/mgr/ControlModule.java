@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Resource;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.Map;
 
 @MetaInfServices(Module.class)
 @Information(id = "sandbox-control", version = "0.0.3", author = "luanjia@taobao.com")
@@ -34,6 +36,12 @@ public class ControlModule implements Module {
         );
     }
 
+    @Command("heartbeat")
+    public void heartbeat(final PrintWriter writer) {
+        writer.println("{\"msg\":\"I'm fine\"}");
+        writer.flush();
+    }
+
     // @Http("/shutdown")
     @Command("shutdown")
     public void shutdown(final PrintWriter writer) {
@@ -54,7 +62,13 @@ public class ControlModule implements Module {
         shutdownJvmSandboxHook.setDaemon(true);
 
         // 在卸载自己之前，先向这个世界发出最后的呐喊吧！
-        writer.println(String.format("jvm-sandbox[%s] shutdown finished.", configInfo.getNamespace()));
+//        writer.println(String.format("jvm-sandbox[%s] shutdown finished.", configInfo.getNamespace()));
+        // 改成json返回
+        Map<String, Object> result = new HashMap<String, Object>(3);
+        result.put("code", 200);
+        result.put("data", null);
+        result.put("msg", String.format("jvm-sandbox[%s] shutdown finished.", configInfo.getNamespace()));
+        writer.println(result);
         writer.flush();
         writer.close();
 

@@ -16,9 +16,7 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
 
 import static com.alibaba.jvm.sandbox.api.util.GaStringUtils.matching;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -61,6 +59,43 @@ public class ModuleMgrModule implements Module {
     // 输出信息到客户端
     private void output(final PrintWriter writer, final String format, final Object... objectArray) {
         writer.println(String.format(format, objectArray));
+    }
+
+    // 新加一个返回list的是json字符串方法 ---alwans
+    @Command("jsonList")
+    public void jsonList(final PrintWriter writer) {
+        Map<String, Object> result = new HashMap<String, Object>(3);
+        List<Map<String, Object>> data = new ArrayList<Map<String, Object>>(moduleManager.list().size());
+        for (final Module module : moduleManager.list()) {
+
+            final Information info = module.getClass().getAnnotation(Information.class);
+
+            try {
+                final boolean isActivated = moduleManager.isActivated(info.id());
+                final boolean isLoaded = moduleManager.isLoaded(info.id());
+                final int cCnt = moduleManager.cCnt(info.id());
+                final int mCnt = moduleManager.mCnt(info.id());
+
+                //|id|isActivated|isLoaded|cCnt|mCnt|version|author|
+                Map<String, Object> map = new HashMap<String, Object>(7);
+                map.put("id", info.id());
+                map.put("isActivated", isActivated);
+                map.put("isLoaded", isLoaded);
+                map.put("cCnt", cCnt);
+                map.put("mCnt", mCnt);
+                map.put("version", info.version());
+                map.put("author", info.author());
+                data.add(map);
+
+            } catch (ModuleException me) {
+                logger.warn("get module info occur error when list modules, module[id={};class={};], error={}, ignore this module.",
+                        me.getUniqueId(), module.getClass(), me.getErrorCode(), me);
+            }
+        }
+        result.put("code", 200);
+        result.put("data", data);
+        result.put("msg", "success!");
+        output(writer, result.toString());
     }
 
     // @Http("/list")
@@ -110,14 +145,27 @@ public class ModuleMgrModule implements Module {
         final String isForceString = getParamWithDefault(param, "force", EMPTY);
         final boolean isForce = BooleanUtils.toBoolean(isForceString);
         moduleManager.flush(isForce);
-        output(writer, "module flush finished, total=%s;", moduleManager.list().size());
+//        output(writer, "module flush finished, total=%s;", moduleManager.list().size());
+        // 方便HttpUtils.Resp.Result.class 解析
+        Map<String, Object> res = new HashMap<String, Object>(3);
+        res.put("data", null);
+        res.put("msg", String.format("module flush finished, total=%s;", moduleManager.list().size()));
+        res.put("code", 200);
+        output(writer, res.toString());
     }
 
     // @Http("/reset")
     @Command("reset")
     public void reset(final PrintWriter writer) throws ModuleException {
         moduleManager.reset();
-        output(writer, "module reset finished, total=%s;", moduleManager.list().size());
+//        output(writer, "module reset finished, total=%s;", moduleManager.list().size());
+
+        // 方便HttpUtils.Resp.Result.class 解析
+        Map<String, Object> res = new HashMap<String, Object>(3);
+        res.put("data", null);
+        res.put("msg", String.format("module reset finished, total=%s;", moduleManager.list().size()));
+        res.put("code", 200);
+        output(writer, res.toString());
     }
 
     // @Http("/unload")
@@ -135,7 +183,14 @@ public class ModuleMgrModule implements Module {
                 logger.warn("unload module[id={};] occur error={}.", me.getUniqueId(), me.getErrorCode(), me);
             }
         }
-        output(writer, "total %s module unloaded.", total);
+//        output(writer, "total %s module unloaded.", total);
+
+        // 方便HttpUtils.Resp.Result.class 解析
+        Map<String, Object> res = new HashMap<String, Object>(3);
+        res.put("data", null);
+        res.put("msg", String.format("total %s module unloaded.", total));
+        res.put("code", 200);
+        output(writer, res.toString());
     }
 
     // @Http("/active")
@@ -158,7 +213,14 @@ public class ModuleMgrModule implements Module {
                 total++;
             }
         }// for
-        output(writer, "total %s module activated.", total);
+//        output(writer, "total %s module activated.", total);
+
+        // 方便HttpUtils.Resp.Result.class 解析
+        Map<String, Object> res = new HashMap<String, Object>(3);
+        res.put("data", null);
+        res.put("msg", String.format("total %s module activated.", total));
+        res.put("code", 200);
+        output(writer, res.toString());
     }
 
     // @Http("/frozen")
@@ -182,7 +244,13 @@ public class ModuleMgrModule implements Module {
             }
 
         }
-        output(writer, "total %s module frozen.", total);
+//        output(writer, "total %s module frozen.", total);
+        // 方便HttpUtils.Resp.Result.class 解析
+        Map<String, Object> res = new HashMap<String, Object>(3);
+        res.put("data", null);
+        res.put("msg", String.format("total %s module frozen.", total));
+        res.put("code", 200);
+        output(writer, res.toString());
     }
 
     // @Http("/detail")
@@ -222,5 +290,6 @@ public class ModuleMgrModule implements Module {
         output(writer, sb);
 
     }
+
 
 }

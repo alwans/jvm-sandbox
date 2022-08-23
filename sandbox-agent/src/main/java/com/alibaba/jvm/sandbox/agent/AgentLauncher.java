@@ -1,10 +1,13 @@
 package com.alibaba.jvm.sandbox.agent;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -81,6 +84,16 @@ public class AgentLauncher {
     // private static final String CLASS_OF_JETTY_CORE_SERVER = "com.alibaba.jvm.sandbox.core.server.jetty.JettyCoreServer";
     private static final String CLASS_OF_PROXY_CORE_SERVER = "com.alibaba.jvm.sandbox.core.server.ProxyCoreServer";
 
+    /* 从cfg配置文件中读取需要上报的相关信息    */
+
+    private static final String REPORT_PATH = "/agent/api/sandbox/mgr/report";
+    // 是否需要上报
+    private static boolean REPORT_ENABLE ;
+    // 上报平台host
+    private static String MARIO_HOST ;
+    // 应用宿主机ip
+    private static String LOCAL_IP ;
+
 
     /**
      * 启动加载
@@ -91,7 +104,9 @@ public class AgentLauncher {
      */
     public static void premain(String featureString, Instrumentation inst) {
         LAUNCH_MODE = LAUNCH_MODE_AGENT;
-        install(toFeatureMap(featureString), inst);
+        final Map<String, String> featureMap = toFeatureMap(featureString);
+        InetSocketAddress address = install(featureMap, inst);
+        report(featureMap, address);
     }
 
     /**
@@ -104,11 +119,93 @@ public class AgentLauncher {
     public static void agentmain(String featureString, Instrumentation inst) {
         LAUNCH_MODE = LAUNCH_MODE_ATTACH;
         final Map<String, String> featureMap = toFeatureMap(featureString);
+        InetSocketAddress address = install(featureMap, inst);
         writeAttachResult(
                 getNamespace(featureMap),
                 getToken(featureMap),
-                install(featureMap, inst)
+                address
         );
+        report(featureMap, address);
+    }
+
+    public static synchronized void report (Map<String, String> featureMap, InetSocketAddress address) {
+        if (!REPORT_ENABLE) {
+            return;
+        }
+        Map<String, String> params = new HashMap<String, String>(5);
+        params.put("host", LOCAL_IP);
+        params.put("sandboxPort", String.valueOf(address.getPort()));
+        params.put("sandboxNameSpace", getNamespace(featureMap));
+        if (getSandboxAgentId() != null) {
+            params.put("sandboxAgentId", getSandboxAgentId());
+        }
+        if (getSandboxApplicationName() != null) {
+            params.put("sandboxApplicationName", getSandboxApplicationName());
+        }
+
+        doGet(MARIO_HOST, params);
+    }
+
+    private static final String QUESTION_SEPARATE = "?";
+    private static final String PARAM_SEPARATE = "&";
+    private static final String KV_SEPARATE = "=";
+
+    public static String doGet (String host, Map<String, String> params) {
+        PrintStream out = System.out;
+        PrintStream err = System.err;
+
+        StringBuilder builder = new StringBuilder("http://");
+        builder.append(host).append(REPORT_PATH);
+        builder.append(QUESTION_SEPARATE).append("_r=1");
+        if( params != null ){
+            for(Map.Entry<String, String>  entry: params.entrySet()){
+                builder.append(PARAM_SEPARATE)
+                        .append(entry.getKey())
+                        .append(KV_SEPARATE)
+                        .append(entry.getValue());
+            }
+        }
+        InputStream is = null;
+        HttpURLConnection connection = null;
+        StringBuilder resp = new StringBuilder();
+        try {
+            URL url = new URL(builder.toString());
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(3000);
+            connection.setReadTimeout(3000);
+            connection.connect();
+            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                is = connection.getInputStream();
+                BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                String line ;
+                while ( (line = br.readLine()) != null) {
+                    resp.append(line);
+                }
+                out.println(">>>> sandbox info report to mario success, resp: " + resp.toString() + " <<<<");
+                return resp.toString();
+            }
+            else {
+                err.println(">>>> sandbox info report to mario failed, resp code: " + connection.getResponseCode() + " <<<<");
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            err.println(">>>> sandbox info report to mario failed, url: " + builder.toString() + " <<<<");
+            e.printStackTrace();
+        } finally {
+            if ( is != null ) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if ( connection != null ) {
+                connection.disconnect();
+            }
+        }
+        return null;
     }
 
     /**
@@ -236,6 +333,19 @@ public class AgentLauncher {
             final Object objectOfCoreConfigure = classOfConfigure.getMethod("toConfigure", String.class, String.class)
                     .invoke(null, coreFeatureString, propertiesFilePath);
 
+            // 获取cfg配置文件中report.enable
+            REPORT_ENABLE = (Boolean) classOfConfigure
+                    .getMethod("isEnableReport")
+                    .invoke(null);
+            // 获取cfg配置文件中的mario.host
+            MARIO_HOST = (String) classOfConfigure
+                    .getMethod("getMarioHost")
+                    .invoke(null);
+            // 获取cfg配置文件中的local.ip
+            LOCAL_IP = (String) classOfConfigure
+                    .getMethod("getLocalIp")
+                    .invoke(null);
+
             // CoreServer类定义
             final Class<?> classOfProxyServer = sandboxClassLoader.loadClass(CLASS_OF_PROXY_CORE_SERVER);
 
@@ -272,6 +382,13 @@ public class AgentLauncher {
         }
 
     }
+
+    // ----------------------------------------------- 新加的读取系统变量 -------------------------------------------------
+
+    private static final String KEY_AGENT_ID = "sandbox.agentId";
+    private static final String KEY_APPLICATION_NAME = "sandbox.applicationName";
+
+
 
 
     // ----------------------------------------------- 以下代码用于配置解析 -----------------------------------------------
@@ -373,6 +490,16 @@ public class AgentLauncher {
     // 获取TOKEN
     private static String getToken(final Map<String, String> featureMap) {
         return getDefault(featureMap, KEY_TOKEN, DEFAULT_TOKEN);
+    }
+
+    // 获取sandbox.agentId
+    private static String getSandboxAgentId() {
+        return System.getProperty(KEY_AGENT_ID);
+    }
+
+    // 获取sandbox.applicationName
+    private static String getSandboxApplicationName() {
+        return System.getProperty(KEY_APPLICATION_NAME);
     }
 
     // 获取容器配置文件路径

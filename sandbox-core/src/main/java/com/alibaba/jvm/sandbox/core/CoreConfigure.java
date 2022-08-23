@@ -38,8 +38,16 @@ public class CoreConfigure {
 
     private static final String KEY_UNSAFE_ENABLE = "unsafe.enable";
 
+    //新增加的
+
+    private static final String KEY_REPORT_ENABLE = "report.enable";
+    private static final String KEY_MARIO_HOST ="mario.host";
+    private static final String KEY_LOCAL_IP ="local.ip";
+
+
     // 受保护key数组，在保护key范围之内，以用户传递的配置为准，系统配置不允许覆盖
-    private static final String[] PROTECT_KEY_ARRAY = {KEY_NAMESPACE, KEY_SANDBOX_HOME, KEY_LAUNCH_MODE, KEY_SERVER_IP, KEY_SERVER_PORT, KEY_SERVER_CHARSET};
+    private static final String[] PROTECT_KEY_ARRAY = {KEY_NAMESPACE, KEY_SANDBOX_HOME, KEY_LAUNCH_MODE, KEY_SERVER_IP, KEY_SERVER_PORT, KEY_SERVER_CHARSET,
+    KEY_REPORT_ENABLE, KEY_MARIO_HOST, KEY_LOCAL_IP};
 
     // 用户配置和系统默认配置都可以，需要进行合并的key，例如user_module
     private static final String[] MULTI_KEY_ARRAY = {KEY_USER_MODULE_LIB_PATH};
@@ -336,6 +344,34 @@ public class CoreConfigure {
         } catch (Exception cause) {
             return Charset.defaultCharset();
         }
+    }
+
+    /**
+     * 是否需要给mario平台上报sandbox部分信息
+     * @return
+     */
+    public static Boolean isEnableReport (){
+        return BooleanUtils.toBoolean(instance.featureMap.get(KEY_REPORT_ENABLE));
+    }
+
+    /**
+     * 获取mario平台的网关url
+     * @return
+     */
+    public static String getMarioHost() {
+        return StringUtils.isNotBlank(instance.featureMap.get(KEY_MARIO_HOST))
+                ? instance.featureMap.get(KEY_MARIO_HOST)
+                : "127.0.0.1:8080";
+    }
+
+    /**
+     * 获取cfg配置文件中的宿主机ip信息
+     * @return
+     */
+    public static String getLocalIp() {
+        return StringUtils.isNotBlank(instance.featureMap.get(KEY_LOCAL_IP))
+                ? instance.featureMap.get(KEY_LOCAL_IP)
+                : "127.0.0.1";
     }
 
 }
