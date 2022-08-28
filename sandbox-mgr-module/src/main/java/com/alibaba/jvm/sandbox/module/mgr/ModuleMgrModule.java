@@ -149,7 +149,7 @@ public class ModuleMgrModule implements Module {
         // 方便HttpUtils.Resp.Result.class 解析
         Map<String, Object> res = new HashMap<String, Object>(3);
         res.put("data", null);
-        res.put("msg", String.format("module flush finished, total=%s;", moduleManager.list().size()));
+        res.put("msg", String.format("\"module flush finished, total=%s;\"", moduleManager.list().size()));
         res.put("code", 200);
         output(writer, res.toString());
     }
@@ -163,7 +163,7 @@ public class ModuleMgrModule implements Module {
         // 方便HttpUtils.Resp.Result.class 解析
         Map<String, Object> res = new HashMap<String, Object>(3);
         res.put("data", null);
-        res.put("msg", String.format("module reset finished, total=%s;", moduleManager.list().size()));
+        res.put("msg", String.format("\"module reset finished, total=%s;\"", moduleManager.list().size()));
         res.put("code", 200);
         output(writer, res.toString());
     }
@@ -188,7 +188,7 @@ public class ModuleMgrModule implements Module {
         // 方便HttpUtils.Resp.Result.class 解析
         Map<String, Object> res = new HashMap<String, Object>(3);
         res.put("data", null);
-        res.put("msg", String.format("total %s module unloaded.", total));
+        res.put("msg", String.format("\"total %s module unloaded.\"", total));
         res.put("code", 200);
         output(writer, res.toString());
     }
@@ -218,7 +218,7 @@ public class ModuleMgrModule implements Module {
         // 方便HttpUtils.Resp.Result.class 解析
         Map<String, Object> res = new HashMap<String, Object>(3);
         res.put("data", null);
-        res.put("msg", String.format("total %s module activated.", total));
+        res.put("msg", String.format("\"total %s module activated.\"", total));
         res.put("code", 200);
         output(writer, res.toString());
     }
@@ -248,7 +248,7 @@ public class ModuleMgrModule implements Module {
         // 方便HttpUtils.Resp.Result.class 解析
         Map<String, Object> res = new HashMap<String, Object>(3);
         res.put("data", null);
-        res.put("msg", String.format("total %s module frozen.", total));
+        res.put("msg", String.format("\"total %s module frozen.\"", total));
         res.put("code", 200);
         output(writer, res.toString());
     }

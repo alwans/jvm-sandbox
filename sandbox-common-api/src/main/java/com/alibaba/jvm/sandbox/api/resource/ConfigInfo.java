@@ -189,4 +189,20 @@ public interface ConfigInfo {
      */
     String getVersion();
 
+
+
+    // ------- 增加几个属性 ---------
+
+    /**
+     * 获取mario 服务的地址
+     * @return mario服务ip:port
+     */
+    String getMarioHost();
+
+    /**
+     * 获取配置文件中配置的本机内网/外网可访问的ip
+     * @return ip
+     */
+    String getLocalIp();
+
 }

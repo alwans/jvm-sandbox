@@ -137,4 +137,16 @@ class DefaultConfigInfo implements ConfigInfo {
             IOUtils.closeQuietly(is);
         }
     }
+
+    // -------- 新增加几个属性 alwans-----
+
+    @Override
+    public String getMarioHost() {
+        return CoreConfigure.getMarioHost();
+    }
+
+    @Override
+    public String getLocalIp() {
+        return CoreConfigure.getLocalIp();
+    }
 }

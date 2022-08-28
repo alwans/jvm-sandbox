@@ -67,8 +67,9 @@ public class ControlModule implements Module {
         Map<String, Object> result = new HashMap<String, Object>(3);
         result.put("code", 200);
         result.put("data", null);
-        result.put("msg", String.format("jvm-sandbox[%s] shutdown finished.", configInfo.getNamespace()));
-        writer.println(result);
+        // 字符串之间不能用空格，冒号， 不然gson转com.mario.common.core~HttpUtils的Result对象时会失败
+        result.put("msg", String.format("\"jvm-sandbox[%s] shutdown Finished.\"", configInfo.getNamespace()));
+        writer.print(result);
         writer.flush();
         writer.close();
 
