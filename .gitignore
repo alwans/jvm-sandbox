@@ -14,6 +14,8 @@ sandbox-debug-module/target/
 sandbox-mgr-module/target/
 sandbox-mgr-provider/target/
 sandbox-module-starter/target/
+sandbox-module-starter/clock-repair-test/target
+sandbox-module-starter/debug-wl/target
 target/
 !sandbox-core/src/test/java/com/alibaba/jvm/sandbox/qatest/core/enhance/target
 
